@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="습관 트래커">
     <title>나의 습관 트래커 🌟</title>
     <style>
         * {
@@ -12,10 +15,12 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .container {
@@ -88,10 +93,11 @@
             font-size: 0.95em;
             cursor: pointer;
             transition: transform 0.2s;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .backup-btn:hover {
-            transform: translateY(-2px);
+        .backup-btn:active {
+            transform: scale(0.95);
         }
 
         .backup-btn.green {
@@ -170,6 +176,8 @@
             resize: vertical;
             min-height: 80px;
             margin-top: 5px;
+            -webkit-user-select: text;
+            user-select: text;
         }
 
         input[type="text"] {
@@ -180,6 +188,8 @@
             font-size: 1em;
             font-family: inherit;
             margin-top: 5px;
+            -webkit-user-select: text;
+            user-select: text;
         }
 
         input:focus, textarea:focus {
@@ -215,19 +225,17 @@
             width: 100%;
             margin-top: 20px;
             transition: transform 0.2s;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn:active {
-            transform: translateY(0);
+            transform: scale(0.98);
         }
 
         .history {
             max-height: 400px;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .history-item {
@@ -248,6 +256,8 @@
             margin-left: 10px;
             color: #555;
             line-height: 1.6;
+            -webkit-user-select: text;
+            user-select: text;
         }
 
         .tabs {
@@ -268,6 +278,7 @@
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .tab.active {
@@ -371,7 +382,6 @@
             margin: 3px 0;
         }
 
-        /* 축하 효과 */
         .celebration {
             position: fixed;
             top: 50%;
@@ -413,7 +423,6 @@
             }
         }
 
-        /* 주말 결과 모달 */
         .modal {
             display: none;
             position: fixed;
@@ -437,6 +446,7 @@
             border-radius: 20px;
             text-align: center;
             max-width: 500px;
+            margin: 20px;
             animation: modalSlideIn 0.5s ease-out;
         }
 
@@ -479,6 +489,7 @@
             font-size: 1.2em;
             font-weight: bold;
             cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
     </style>
 </head>
@@ -496,7 +507,6 @@
                 매주 토요일마다 점수가 리셋됩니다 (토요일~금요일)
             </div>
             
-            <!-- 백업 버튼들 -->
             <div class="backup-buttons">
                 <button class="backup-btn green" onclick="backupDataJSON()">
                     💾 JSON 백업
@@ -653,7 +663,6 @@
         </div>
     </div>
 
-    <!-- 주말 결과 모달 -->
     <div id="weekendModal" class="modal">
         <div class="modal-content">
             <div class="modal-emoji" id="modalEmoji">🎮</div>
@@ -664,16 +673,14 @@
     </div>
 
     <script>
-        // 축하 효과 - 15점 이상일 때
+        // localStorage 사용 (iOS Safari 호환)
         function showCelebration() {
             const celebration = document.createElement('div');
             celebration.className = 'celebration';
             celebration.innerHTML = '🎉';
             document.body.appendChild(celebration);
             
-            setTimeout(() => {
-                celebration.remove();
-            }, 2000);
+            setTimeout(() => celebration.remove(), 2000);
             
             const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe'];
             for (let i = 0; i < 50; i++) {
@@ -685,13 +692,11 @@
                     confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
                     confetti.style.animation = `confetti-fall ${2 + Math.random() * 2}s linear`;
                     document.body.appendChild(confetti);
-                    
                     setTimeout(() => confetti.remove(), 4000);
                 }, i * 30);
             }
         }
 
-        // 주말 결과 모달 표시
         function showWeekendModal(score) {
             const modal = document.getElementById('weekendModal');
             const emoji = document.getElementById('modalEmoji');
@@ -720,7 +725,7 @@
             document.getElementById('weekendModal').classList.remove('show');
         }
 
-        async function checkFridayAndShowModal() {
+        function checkFridayAndShowModal() {
             const today = new Date();
             const dayOfWeek = today.getDay();
             
@@ -729,16 +734,14 @@
                 const weekStartStr = weekStart.toISOString().split('T')[0];
                 
                 try {
-                    const result = await window.storage.get(`week_${weekStartStr}`);
-                    const weekData = result ? JSON.parse(result.value) : { total: 0, days: {} };
-                    
+                    const weekData = JSON.parse(localStorage.getItem(`week_${weekStartStr}`) || '{"total":0,"days":{}}');
                     const todayStr = today.toISOString().split('T')[0];
-                    const modalShown = await window.storage.get(`modal_${todayStr}`);
+                    const modalShown = localStorage.getItem(`modal_${todayStr}`);
                     
                     if (!modalShown) {
                         setTimeout(() => {
                             showWeekendModal(weekData.total);
-                            window.storage.set(`modal_${todayStr}`, 'true');
+                            localStorage.setItem(`modal_${todayStr}`, 'true');
                         }, 3000);
                     }
                 } catch (error) {
@@ -747,23 +750,12 @@
             }
         }
 
-        // JSON 백업 함수
-        async function backupDataJSON() {
+        function backupDataJSON() {
             try {
-                const keys = await window.storage.list('');
                 const backup = {};
-                
-                if (keys && keys.keys.length > 0) {
-                    for (const key of keys.keys) {
-                        try {
-                            const result = await window.storage.get(key);
-                            if (result) {
-                                backup[key] = result.value;
-                            }
-                        } catch (error) {
-                            console.error('키 로드 오류:', key, error);
-                        }
-                    }
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    backup[key] = localStorage.getItem(key);
                 }
                 
                 const dataStr = JSON.stringify(backup, null, 2);
@@ -778,77 +770,70 @@
                 
                 alert('✅ 데이터가 JSON 파일로 백업되었어요!');
             } catch (error) {
-                alert('❌ 백업 중 오류가 발생했어요.');
+                alert('❌ 백업 중 오류가 발생했어요: ' + error.message);
                 console.error(error);
             }
         }
 
-        // 데이터 복원 함수
-        async function restoreData(event) {
+        function restoreData(event) {
             const file = event.target.files[0];
             if (!file) return;
             
             const reader = new FileReader();
-            reader.onload = async function(e) {
+            reader.onload = function(e) {
                 try {
                     const backup = JSON.parse(e.target.result);
                     
                     for (const [key, value] of Object.entries(backup)) {
-                        await window.storage.set(key, value);
+                        localStorage.setItem(key, value);
                     }
                     
                     alert('✅ 데이터가 복원되었어요! 페이지를 새로고침합니다.');
                     location.reload();
                 } catch (error) {
-                    alert('❌ 파일을 읽는 중 오류가 발생했어요. JSON 파일인지 확인해주세요.');
+                    alert('❌ 파일을 읽는 중 오류가 발생했어요: ' + error.message);
                     console.error(error);
                 }
             };
             reader.readAsText(file);
         }
 
-        // 엑셀/CSV 내보내기 함수
-        async function exportToExcel() {
+        function exportToExcel() {
             try {
-                const keys = await window.storage.list('day_');
+                const keys = Object.keys(localStorage).filter(k => k.startsWith('day_')).sort();
                 
-                if (!keys || keys.keys.length === 0) {
+                if (keys.length === 0) {
                     alert('아직 내보낼 기록이 없어요.');
                     return;
                 }
                 
                 let csv = '날짜,요일,독서,책제목,저자,독서내용,집안일,집안일내용,특별한일,특별한일내용,짜증,짜증내용,점수\n';
                 
-                const sortedKeys = keys.keys.sort();
-                
-                for (const key of sortedKeys) {
+                for (const key of keys) {
                     try {
-                        const result = await window.storage.get(key);
-                        if (result) {
-                            const data = JSON.parse(result.value);
-                            const date = new Date(data.date);
-                            const dateStr = date.toLocaleDateString('ko-KR');
-                            const dayStr = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
-                            
-                            let score = 0;
-                            if (data.reading) score += 10;
-                            if (data.chore) score += 5;
-                            if (data.special) score += 15;
-                            if (data.tantrum) score -= 10;
-                            
-                            csv += `"${dateStr}","${dayStr}",`;
-                            csv += `"${data.reading ? 'O' : 'X'}",`;
-                            csv += `"${(data.bookTitle || '').replace(/"/g, '""')}",`;
-                            csv += `"${(data.bookAuthor || '').replace(/"/g, '""')}",`;
-                            csv += `"${(data.readingText || '').replace(/"/g, '""')}",`;
-                            csv += `"${data.chore ? 'O' : 'X'}",`;
-                            csv += `"${(data.choreText || '').replace(/"/g, '""')}",`;
-                            csv += `"${data.special ? 'O' : 'X'}",`;
-                            csv += `"${(data.specialText || '').replace(/"/g, '""')}",`;
-                            csv += `"${data.tantrum ? 'O' : 'X'}",`;
-                            csv += `"${(data.tantrumText || '').replace(/"/g, '""')}",`;
-                            csv += `"${score}"\n`;
-                        }
+                        const data = JSON.parse(localStorage.getItem(key));
+                        const date = new Date(data.date);
+                        const dateStr = date.toLocaleDateString('ko-KR');
+                        const dayStr = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+                        
+                        let score = 0;
+                        if (data.reading) score += 10;
+                        if (data.chore) score += 5;
+                        if (data.special) score += 15;
+                        if (data.tantrum) score -= 10;
+                        
+                        csv += `"${dateStr}","${dayStr}",`;
+                        csv += `"${data.reading ? 'O' : 'X'}",`;
+                        csv += `"${(data.bookTitle || '').replace(/"/g, '""')}",`;
+                        csv += `"${(data.bookAuthor || '').replace(/"/g, '""')}",`;
+                        csv += `"${(data.readingText || '').replace(/"/g, '""')}",`;
+                        csv += `"${data.chore ? 'O' : 'X'}",`;
+                        csv += `"${(data.choreText || '').replace(/"/g, '""')}",`;
+                        csv += `"${data.special ? 'O' : 'X'}",`;
+                        csv += `"${(data.specialText || '').replace(/"/g, '""')}",`;
+                        csv += `"${data.tantrum ? 'O' : 'X'}",`;
+                        csv += `"${(data.tantrumText || '').replace(/"/g, '""')}",`;
+                        csv += `"${score}"\n`;
                     } catch (error) {
                         console.error('기록 로드 오류:', error);
                     }
@@ -864,14 +849,13 @@
                 a.click();
                 URL.revokeObjectURL(url);
                 
-                alert('✅ 엑셀 파일로 내보내기 완료! CSV 파일을 엑셀로 열어보세요.');
+                alert('✅ 엑셀 파일로 내보내기 완료!');
             } catch (error) {
-                alert('❌ 내보내기 중 오류가 발생했어요.');
+                alert('❌ 내보내기 중 오류가 발생했어요: ' + error.message);
                 console.error(error);
             }
         }
 
-        // 체크박스 변경시 텍스트 영역 표시/숨김
         document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
             checkbox.addEventListener('change', function() {
                 if (this.id === 'readingCheck') {
@@ -899,13 +883,12 @@
             return new Date(d.setDate(diff));
         }
 
-        async function updateScore() {
+        function updateScore() {
             const weekStart = getWeekStart(new Date());
             const weekStartStr = weekStart.toISOString().split('T')[0];
             
             try {
-                const result = await window.storage.get(`week_${weekStartStr}`);
-                const weekData = result ? JSON.parse(result.value) : { total: 0, days: {} };
+                const weekData = JSON.parse(localStorage.getItem(`week_${weekStartStr}`) || '{"total":0,"days":{}}');
                 
                 document.getElementById('totalScore').textContent = weekData.total;
                 
@@ -921,18 +904,16 @@
                     statusEl.innerHTML = '😢 아직 게임 불가능... 힘내요!';
                 }
             } catch (error) {
-                console.log('점수 정보 없음');
+                console.error('점수 업데이트 오류:', error);
             }
         }
 
-        async function loadToday() {
+        function loadToday() {
             const today = new Date().toISOString().split('T')[0];
             
             try {
-                const result = await window.storage.get(`day_${today}`);
-                if (result) {
-                    const data = JSON.parse(result.value);
-                    
+                const data = JSON.parse(localStorage.getItem(`day_${today}`));
+                if (data) {
                     if (data.reading) {
                         document.getElementById('readingCheck').checked = true;
                         document.getElementById('readingContent').style.display = 'block';
@@ -961,7 +942,7 @@
             }
         }
 
-        async function saveToday() {
+        function saveToday() {
             const today = new Date().toISOString().split('T')[0];
             const weekStart = getWeekStart(new Date());
             const weekStartStr = weekStart.toISOString().split('T')[0];
@@ -987,21 +968,14 @@
             if (data.tantrum) todayScore -= 10;
             
             try {
-                await window.storage.set(`day_${today}`, JSON.stringify(data));
+                localStorage.setItem(`day_${today}`, JSON.stringify(data));
                 
-                let weekData;
-                try {
-                    const result = await window.storage.get(`week_${weekStartStr}`);
-                    weekData = result ? JSON.parse(result.value) : { total: 0, days: {} };
-                } catch {
-                    weekData = { total: 0, days: {} };
-                }
-                
+                const weekData = JSON.parse(localStorage.getItem(`week_${weekStartStr}`) || '{"total":0,"days":{}}');
                 const oldScore = weekData.days[today] || 0;
                 weekData.total = weekData.total - oldScore + todayScore;
                 weekData.days[today] = todayScore;
                 
-                await window.storage.set(`week_${weekStartStr}`, JSON.stringify(weekData));
+                localStorage.setItem(`week_${weekStartStr}`, JSON.stringify(weekData));
                 
                 if (todayScore >= 15) {
                     showCelebration();
@@ -1012,14 +986,14 @@
                     alert('✅ 기록이 저장되었어요! 잘했어요! 🎉');
                 }
                 
-                await updateScore();
+                updateScore();
             } catch (error) {
-                alert('저장 중 오류가 발생했어요. 다시 시도해주세요.');
+                alert('❌ 저장 중 오류가 발생했어요: ' + error.message);
                 console.error(error);
             }
         }
 
-        async function loadWeekStats() {
+        function loadWeekStats() {
             const weekStart = getWeekStart(new Date());
             const weekEnd = new Date(weekStart);
             weekEnd.setDate(weekEnd.getDate() + 6);
@@ -1037,9 +1011,8 @@
                 const dateStr = currentDate.toISOString().split('T')[0];
                 
                 try {
-                    const result = await window.storage.get(`day_${dateStr}`);
-                    if (result) {
-                        const data = JSON.parse(result.value);
+                    const data = JSON.parse(localStorage.getItem(`day_${dateStr}`));
+                    if (data) {
                         if (data.reading) readingCount++;
                         if (data.chore) choreCount++;
                         if (data.special) specialCount++;
@@ -1080,7 +1053,7 @@
             document.getElementById('weekCalendar').innerHTML = calendarHTML.join('');
         }
 
-        async function loadMonthStats() {
+        function loadMonthStats() {
             const now = new Date();
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
             const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -1091,42 +1064,33 @@
             let readingCount = 0, choreCount = 0, specialCount = 0;
             const books = new Map();
             
-            try {
-                const keys = await window.storage.list('day_');
-                
-                if (keys && keys.keys.length > 0) {
-                    for (const key of keys.keys) {
-                        try {
-                            const result = await window.storage.get(key);
-                            if (result) {
-                                const data = JSON.parse(result.value);
-                                const recordDate = new Date(data.date);
-                                
-                                if (recordDate >= monthStart && recordDate <= monthEnd) {
-                                    if (data.reading) {
-                                        readingCount++;
-                                        if (data.bookTitle) {
-                                            const bookKey = data.bookTitle.trim();
-                                            if (!books.has(bookKey)) {
-                                                books.set(bookKey, {
-                                                    author: data.bookAuthor || '저자 미상',
-                                                    dates: []
-                                                });
-                                            }
-                                            books.get(bookKey).dates.push(data.date);
-                                        }
-                                    }
-                                    if (data.chore) choreCount++;
-                                    if (data.special) specialCount++;
+            const keys = Object.keys(localStorage).filter(k => k.startsWith('day_'));
+            
+            for (const key of keys) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    const recordDate = new Date(data.date);
+                    
+                    if (recordDate >= monthStart && recordDate <= monthEnd) {
+                        if (data.reading) {
+                            readingCount++;
+                            if (data.bookTitle) {
+                                const bookKey = data.bookTitle.trim();
+                                if (!books.has(bookKey)) {
+                                    books.set(bookKey, {
+                                        author: data.bookAuthor || '저자 미상',
+                                        dates: []
+                                    });
                                 }
+                                books.get(bookKey).dates.push(data.date);
                             }
-                        } catch (error) {
-                            console.error('기록 로드 오류:', error);
                         }
+                        if (data.chore) choreCount++;
+                        if (data.special) specialCount++;
                     }
+                } catch (error) {
+                    console.error('기록 로드 오류:', error);
                 }
-            } catch (error) {
-                console.error('월간 통계 로드 오류:', error);
             }
             
             document.getElementById('monthReadingCount').textContent = readingCount;
@@ -1152,77 +1116,67 @@
             }
         }
 
-        async function loadHistory() {
+        function loadHistory() {
             const historyList = document.getElementById('historyList');
             historyList.innerHTML = '';
             
-            try {
-                const keys = await window.storage.list('day_');
-                
-                if (!keys || keys.keys.length === 0) {
-                    historyList.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">아직 기록이 없어요. 오늘부터 시작해볼까요? 😊</p>';
-                    return;
-                }
-                
-                const sortedKeys = keys.keys.sort().reverse();
-                
-                for (const key of sortedKeys) {
-                    try {
-                        const result = await window.storage.get(key);
-                        if (result) {
-                            const data = JSON.parse(result.value);
-                            const date = new Date(data.date);
-                            const dateStr = date.toLocaleDateString('ko-KR', { 
-                                year: 'numeric', 
-                                month: 'long', 
-                                day: 'numeric', 
-                                weekday: 'long' 
-                            });
-                            
-                            let content = '';
-                            
-                            if (data.reading) {
-                                let readingInfo = '📖 독서: ';
-                                if (data.bookTitle) {
-                                    readingInfo += `"${data.bookTitle}"`;
-                                    if (data.bookAuthor) {
-                                        readingInfo += ` (${data.bookAuthor})`;
-                                    }
-                                    if (data.readingText) {
-                                        readingInfo += `<div class="reading-log" style="margin-top: 8px;">${data.readingText}</div>`;
-                                    }
-                                } else {
-                                    readingInfo += data.readingText || '완료';
-                                }
-                                content += `<div>${readingInfo}</div>`;
+            const keys = Object.keys(localStorage).filter(k => k.startsWith('day_')).sort().reverse();
+            
+            if (keys.length === 0) {
+                historyList.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">아직 기록이 없어요. 오늘부터 시작해볼까요? 😊</p>';
+                return;
+            }
+            
+            for (const key of keys) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    const date = new Date(data.date);
+                    const dateStr = date.toLocaleDateString('ko-KR', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric', 
+                        weekday: 'long' 
+                    });
+                    
+                    let content = '';
+                    
+                    if (data.reading) {
+                        let readingInfo = '📖 독서: ';
+                        if (data.bookTitle) {
+                            readingInfo += `"${data.bookTitle}"`;
+                            if (data.bookAuthor) {
+                                readingInfo += ` (${data.bookAuthor})`;
                             }
-                            if (data.chore) {
-                                content += `<div>🧹 집안일: ${data.choreText || '완료'}</div>`;
+                            if (data.readingText) {
+                                readingInfo += `<div class="reading-log" style="margin-top: 8px;">${data.readingText}</div>`;
                             }
-                            if (data.special) {
-                                content += `<div>⭐ 특별히 잘한 일: ${data.specialText || '완료'}</div>`;
-                            }
-                            if (data.tantrum) {
-                                content += `<div>😤 짜증낸 일: ${data.tantrumText || '있음'}</div>`;
-                            }
-                            
-                            if (content) {
-                                const item = document.createElement('div');
-                                item.className = 'history-item';
-                                item.innerHTML = `
-                                    <div class="history-date">${dateStr}</div>
-                                    <div class="history-content">${content}</div>
-                                `;
-                                historyList.appendChild(item);
-                            }
+                        } else {
+                            readingInfo += data.readingText || '완료';
                         }
-                    } catch (error) {
-                        console.error('기록 로드 오류:', error);
+                        content += `<div>${readingInfo}</div>`;
                     }
+                    if (data.chore) {
+                        content += `<div>🧹 집안일: ${data.choreText || '완료'}</div>`;
+                    }
+                    if (data.special) {
+                        content += `<div>⭐ 특별히 잘한 일: ${data.specialText || '완료'}</div>`;
+                    }
+                    if (data.tantrum) {
+                        content += `<div>😤 짜증낸 일: ${data.tantrumText || '있음'}</div>`;
+                    }
+                    
+                    if (content) {
+                        const item = document.createElement('div');
+                        item.className = 'history-item';
+                        item.innerHTML = `
+                            <div class="history-date">${dateStr}</div>
+                            <div class="history-content">${content}</div>
+                        `;
+                        historyList.appendChild(item);
+                    }
+                } catch (error) {
+                    console.error('기록 로드 오류:', error);
                 }
-            } catch (error) {
-                console.error('히스토리 로드 오류:', error);
-                historyList.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">기록을 불러올 수 없어요.</p>';
             }
         }
 
