@@ -878,9 +878,27 @@
 
         function getWeekStart(date) {
             const d = new Date(date);
-            const day = d.getDay();
-            const diff = d.getDate() - day + (day === 0 ? -6 : -day + 6);
-            return new Date(d.setDate(diff));
+            const day = d.getDay(); // 0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토
+            
+            // 토요일(6)을 주의 시작으로 설정
+            let diff;
+            if (day === 6) {
+                // 오늘이 토요일이면 그대로
+                diff = 0;
+            } else {
+                // 토요일까지 거슬러 올라가기
+                // 일요일(0)이면 -1일 (어제 토요일)
+                // 월요일(1)이면 -2일
+                // 화요일(2)이면 -3일
+                // 수요일(3)이면 -4일
+                // 목요일(4)이면 -5일
+                // 금요일(5)이면 -6일
+                diff = day === 0 ? -1 : -(day + 1);
+            }
+            
+            const result = new Date(d);
+            result.setDate(d.getDate() + diff);
+            return result;
         }
 
         function updateScore() {
