@@ -522,8 +522,13 @@
             <button class="backup-btn blue" onclick="exportToExcel()">
                 📊 엑셀 내보내기
             </button>
+        </div>
+        <div class="backup-buttons" style="margin-top: 10px;">
             <button class="backup-btn" style="background: #8b5cf6; color: white;" onclick="showDebugInfo()">
                 🔍 데이터 확인
+            </button>
+            <button class="backup-btn" style="background: #ef4444; color: white;" onclick="if(confirm('일별 기록을 바탕으로 주간 점수를 다시 계산합니다. 계속하시겠어요?')) fixWeekScores()">
+                🔧 점수 재계산
             </button>
         </div>
         <input type="file" id="restoreFile" accept=".json" style="display: none;" onchange="restoreData(event)">
@@ -539,7 +544,12 @@
     <div id="todayTab" class="tab-content active">
         <div class="card">
             <h2>📚 오늘의 습관 기록</h2>
-            <p style="color: #666; margin-bottom: 20px;">오늘 날짜: <strong id="todayDate"></strong></p>
+            <div style="margin-bottom: 20px;">
+                <div class="field-label">📅 날짜 선택</div>
+                <input type="date" id="selectedDate" style="width: 100%; padding: 12px; font-size: 1.1em; border: 2px solid #667eea; border-radius: 8px; margin-top: 5px;" onchange="onDateChange()">
+                <p id="dateWarning" style="color: #f59e0b; margin-top: 8px; font-size: 0.9em; display: none;">⚠️ 과거 날짜를 수정하려면 비밀번호가 필요해요</p>
+            </div>
+            <p style="color: #666; margin-bottom: 20px;">선택한 날짜: <strong id="displayDate"></strong></p>
 
             <div class="habit-item">
                 <div class="habit-header">
@@ -880,8 +890,116 @@
 
     function updateDate() {
         const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        
+        // 날짜 선택기 설정
+        const dateInput = document.getElementById('selectedDate');
+        dateInput.value = todayStr;
+        dateInput.max = todayStr; // 미래 날짜 선택 불가
+        
+        // 표시용 날짜
         const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-        document.getElementById('todayDate').textContent = today.toLocaleDateString('ko-KR', options);
+        document.getElementById('displayDate').textContent = today.toLocaleDateString('ko-KR', options);
+    }
+
+    let lastValidDate = null;
+    let isPasswordVerified = false;
+
+    function onDateChange() {
+        const selectedDate = document.getElementById('selectedDate').value;
+        const today = new Date().toISOString().split('T')[0];
+        const dateWarning = document.getElementById('dateWarning');
+        
+        if (selectedDate > today) {
+            // 미래 날짜 선택 시 오늘로 되돌림
+            alert('⚠️ 미래 날짜는 선택할 수 없어요!');
+            document.getElementById('selectedDate').value = lastValidDate || today;
+            return;
+        }
+        
+        if (selectedDate < today) {
+            // 과거 날짜 선택 시 비밀번호 확인
+            dateWarning.style.display = 'block';
+            
+            if (!isPasswordVerified || lastValidDate !== selectedDate) {
+                const password = prompt('📅 과거 날짜를 수정하려면 비밀번호를 입력하세요:');
+                
+                if (password !== '1313') {
+                    alert('❌ 비밀번호가 틀렸어요!');
+                    document.getElementById('selectedDate').value = lastValidDate || today;
+                    dateWarning.style.display = 'none';
+                    return;
+                }
+                
+                isPasswordVerified = true;
+                alert('✅ 비밀번호 확인! 과거 날짜를 수정할 수 있어요.');
+            }
+        } else {
+            dateWarning.style.display = 'none';
+            isPasswordVerified = false;
+        }
+        
+        lastValidDate = selectedDate;
+        
+        // 선택한 날짜 표시 업데이트
+        const date = new Date(selectedDate + 'T00:00:00');
+        const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+        document.getElementById('displayDate').textContent = date.toLocaleDateString('ko-KR', options);
+        
+        // 해당 날짜의 기록 불러오기
+        loadSelectedDate(selectedDate);
+    }
+
+    function loadSelectedDate(dateStr) {
+        // 모든 입력 초기화
+        document.getElementById('readingCheck').checked = false;
+        document.getElementById('readingContent').style.display = 'none';
+        document.getElementById('bookTitle').value = '';
+        document.getElementById('bookAuthor').value = '';
+        document.getElementById('readingText').value = '';
+        
+        document.getElementById('choreCheck').checked = false;
+        document.getElementById('choreContent').style.display = 'none';
+        document.getElementById('choreText').value = '';
+        
+        document.getElementById('specialCheck').checked = false;
+        document.getElementById('specialContent').style.display = 'none';
+        document.getElementById('specialText').value = '';
+        
+        document.getElementById('tantrumCheck').checked = false;
+        document.getElementById('tantrumContent').style.display = 'none';
+        document.getElementById('tantrumText').value = '';
+        
+        // 해당 날짜의 기록 불러오기
+        try {
+            const data = JSON.parse(localStorage.getItem(`day_${dateStr}`));
+            if (data) {
+                if (data.reading) {
+                    document.getElementById('readingCheck').checked = true;
+                    document.getElementById('readingContent').style.display = 'block';
+                    document.getElementById('bookTitle').value = data.bookTitle || '';
+                    document.getElementById('bookAuthor').value = data.bookAuthor || '';
+                    document.getElementById('readingText').value = data.readingText || '';
+                }
+                if (data.chore) {
+                    document.getElementById('choreCheck').checked = true;
+                    document.getElementById('choreContent').style.display = 'block';
+                    document.getElementById('choreText').value = data.choreText || '';
+                }
+                if (data.special) {
+                    document.getElementById('specialCheck').checked = true;
+                    document.getElementById('specialContent').style.display = 'block';
+                    document.getElementById('specialText').value = data.specialText || '';
+                }
+                if (data.tantrum) {
+                    document.getElementById('tantrumCheck').checked = true;
+                    document.getElementById('tantrumContent').style.display = 'block';
+                    document.getElementById('tantrumText').value = data.tantrumText || '';
+                }
+            }
+        } catch (error) {
+            console.log('해당 날짜 기록 없음');
+        }
     }
 
     function getWeekStart(date) {
@@ -936,41 +1054,22 @@
 
     function loadToday() {
         const today = new Date().toISOString().split('T')[0];
-        
-        try {
-            const data = JSON.parse(localStorage.getItem(`day_${today}`));
-            if (data) {
-                if (data.reading) {
-                    document.getElementById('readingCheck').checked = true;
-                    document.getElementById('readingContent').style.display = 'block';
-                    document.getElementById('bookTitle').value = data.bookTitle || '';
-                    document.getElementById('bookAuthor').value = data.bookAuthor || '';
-                    document.getElementById('readingText').value = data.readingText || '';
-                }
-                if (data.chore) {
-                    document.getElementById('choreCheck').checked = true;
-                    document.getElementById('choreContent').style.display = 'block';
-                    document.getElementById('choreText').value = data.choreText || '';
-                }
-                if (data.special) {
-                    document.getElementById('specialCheck').checked = true;
-                    document.getElementById('specialContent').style.display = 'block';
-                    document.getElementById('specialText').value = data.specialText || '';
-                }
-                if (data.tantrum) {
-                    document.getElementById('tantrumCheck').checked = true;
-                    document.getElementById('tantrumContent').style.display = 'block';
-                    document.getElementById('tantrumText').value = data.tantrumText || '';
-                }
-            }
-        } catch (error) {
-            console.log('오늘 기록 없음');
-        }
+        lastValidDate = today;
+        loadSelectedDate(today);
     }
 
     function saveToday() {
+        const selectedDateStr = document.getElementById('selectedDate').value;
         const today = new Date().toISOString().split('T')[0];
-        const weekStart = getWeekStart(new Date());
+        
+        // 과거 날짜인데 비밀번호 확인 안 됐으면
+        if (selectedDateStr < today && !isPasswordVerified) {
+            alert('❌ 과거 날짜를 저장하려면 먼저 비밀번호를 입력해야 해요!');
+            return;
+        }
+        
+        const selectedDate = new Date(selectedDateStr + 'T00:00:00');
+        const weekStart = getWeekStart(selectedDate);
         const weekStartStr = weekStart.toISOString().split('T')[0];
         
         const data = {
@@ -984,7 +1083,7 @@
             specialText: document.getElementById('specialText').value,
             tantrum: document.getElementById('tantrumCheck').checked,
             tantrumText: document.getElementById('tantrumText').value,
-            date: today
+            date: selectedDateStr
         };
         
         let todayScore = 0;
@@ -994,16 +1093,16 @@
         if (data.tantrum) todayScore -= 10;
         
         try {
-            localStorage.setItem(`day_${today}`, JSON.stringify(data));
+            localStorage.setItem(`day_${selectedDateStr}`, JSON.stringify(data));
             
             const weekData = JSON.parse(localStorage.getItem(`week_${weekStartStr}`) || '{"total":0,"days":{}}');
-            const oldScore = weekData.days[today] || 0;
+            const oldScore = weekData.days[selectedDateStr] || 0;
             weekData.total = weekData.total - oldScore + todayScore;
-            weekData.days[today] = todayScore;
+            weekData.days[selectedDateStr] = todayScore;
             
             localStorage.setItem(`week_${weekStartStr}`, JSON.stringify(weekData));
             
-            if (todayScore >= 15) {
+            if (todayScore >= 15 && selectedDateStr === today) {
                 showCelebration();
                 setTimeout(() => {
                     alert('✅ 오늘 15점 이상 달성! 정말 멋져요! 🎉🎉🎉');
@@ -1013,6 +1112,14 @@
             }
             
             updateScore();
+            
+            // 과거 날짜 수정 후 오늘로 돌아가기
+            if (selectedDateStr < today) {
+                isPasswordVerified = false;
+                document.getElementById('selectedDate').value = today;
+                document.getElementById('dateWarning').style.display = 'none';
+                onDateChange();
+            }
         } catch (error) {
             alert('❌ 저장 중 오류가 발생했어요: ' + error.message);
             console.error(error);
@@ -1270,6 +1377,48 @@
         }
         
         alert(info);
+    }
+
+    function fixWeekScores() {
+        const weekStart = getWeekStart(new Date());
+        const weekStartStr = weekStart.toISOString().split('T')[0];
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        
+        let totalScore = 0;
+        const dayScores = {};
+        
+        // 이번 주 모든 날짜 확인
+        for (let i = 0; i < 7; i++) {
+            const currentDate = new Date(weekStart);
+            currentDate.setDate(currentDate.getDate() + i);
+            const dateStr = currentDate.toISOString().split('T')[0];
+            
+            const dayData = localStorage.getItem(`day_${dateStr}`);
+            if (dayData) {
+                const data = JSON.parse(dayData);
+                let score = 0;
+                if (data.reading) score += 10;
+                if (data.chore) score += 5;
+                if (data.special) score += 15;
+                if (data.tantrum) score -= 10;
+                
+                dayScores[dateStr] = score;
+                totalScore += score;
+            }
+        }
+        
+        // 주간 데이터 재생성
+        const weekData = {
+            total: totalScore,
+            days: dayScores
+        };
+        
+        localStorage.setItem(`week_${weekStartStr}`, JSON.stringify(weekData));
+        
+        alert(`✅ 주간 점수 재계산 완료!\n총점: ${totalScore}점`);
+        updateScore();
+        location.reload();
     }
 
     updateDate();
