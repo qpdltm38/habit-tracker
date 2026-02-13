@@ -55,12 +55,12 @@
         position: fixed;
         top: 20px;
         right: 20px;
-        width: 50px;
-        height: 50px;
+        width: 60px;
+        height: 60px;
         background: white;
-        border: none;
+        border: 3px solid #667eea;
         border-radius: 50%;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         cursor: pointer;
         z-index: 9999;
         display: flex;
@@ -68,13 +68,15 @@
         align-items: center;
         justify-content: center;
         gap: 5px;
+        padding: 15px;
     }
     .menu-btn span {
-        width: 20px;
-        height: 3px;
+        width: 24px;
+        height: 4px;
         background: #667eea;
         border-radius: 2px;
         transition: 0.3s;
+        display: block;
     }
     .menu-btn.active span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
     .menu-btn.active span:nth-child(2) { opacity: 0; }
@@ -305,35 +307,35 @@
 
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🌟 나의 습관 트래커 🌟</h1>
-            <div class="score-display">
-                이번 주 점수: <span id="totalScore">0</span>점
-            </div>
-            <div id="gameStatus" class="game-status none">게임 불가능 😢</div>
-            <div class="week-reset">매주 토요일마다 점수가 리셋됩니다 (토요일~금요일)</div>
-        </div>
-
-```
     <button class="menu-btn" id="menuBtn">
         <span></span>
         <span></span>
         <span></span>
     </button>
-    
-    <div class="menu-backdrop" id="menuBackdrop"></div>
-    
-    <div class="menu-panel" id="menuPanel">
-        <h3>⚙️ 관리 메뉴</h3>
-        <button id="backupBtn">💾 JSON 백업</button>
-        <button id="restoreBtn">📥 데이터 복원</button>
-        <button id="excelBtn">📊 엑셀 내보내기</button>
-        <button id="debugBtn">🔍 데이터 확인</button>
-        <button id="fixBtn" class="danger">🔧 점수 재계산</button>
+
+```
+<div class="menu-backdrop" id="menuBackdrop"></div>
+
+<div class="menu-panel" id="menuPanel">
+    <h3>⚙️ 관리 메뉴</h3>
+    <button id="backupBtn">💾 JSON 백업</button>
+    <button id="restoreBtn">📥 데이터 복원</button>
+    <button id="excelBtn">📊 엑셀 내보내기</button>
+    <button id="debugBtn">🔍 데이터 확인</button>
+    <button id="fixBtn" class="danger">🔧 점수 재계산</button>
+</div>
+
+<input type="file" id="fileInput" accept=".json" style="display:none;">
+
+<div class="container">
+    <div class="header">
+        <h1>🌟 나의 습관 트래커 🌟</h1>
+        <div class="score-display">
+            이번 주 점수: <span id="totalScore">0</span>점
+        </div>
+        <div id="gameStatus" class="game-status none">게임 불가능 😢</div>
+        <div class="week-reset">매주 토요일마다 점수가 리셋됩니다 (토요일~금요일)</div>
     </div>
-    
-    <input type="file" id="fileInput" accept=".json" style="display:none;">
 
     <div class="tabs">
         <button class="tab active" id="tab0">오늘의 기록</button>
