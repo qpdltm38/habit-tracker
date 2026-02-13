@@ -947,6 +947,32 @@ function saveRecord() {
             주간총점: weekData.total
         });
         
+        // 긴급 수정: 저장 후 현재 주 전체 점수 재계산
+        console.log('=== 저장 후 재계산 시작 ===');
+        var recalcWeekStart = getWeekStart(new Date());
+        var recalcWeekStartStr = recalcWeekStart.toISOString().split('T')[0];
+        var recalcTotal = 0;
+        var recalcDays = {};
+        
+        for(var i=0; i<7; i++) {
+            var checkDate = new Date(recalcWeekStart);
+            checkDate.setDate(checkDate.getDate()+i);
+            var checkDateStr = checkDate.toISOString().split('T')[0];
+            var dayData = localStorage.getItem('day_'+checkDateStr);
+            if(dayData) {
+                var parsed = JSON.parse(dayData);
+                var dayScore = (parsed.reading?10:0)+(parsed.chore?5:0)+(parsed.special?15:0)+(parsed.tantrum?-10:0);
+                recalcDays[checkDateStr] = dayScore;
+                recalcTotal += dayScore;
+                console.log('재계산 - '+checkDateStr+': '+dayScore+'점');
+            }
+        }
+        
+        var recalcWeekData = {total: recalcTotal, days: recalcDays};
+        localStorage.setItem('week_'+recalcWeekStartStr, JSON.stringify(recalcWeekData));
+        console.log('재계산 완료 - 총점:', recalcTotal);
+        console.log('=== 재계산 종료 ===');
+        
         // 점수 업데이트 (즉시)
         updateScore();
         
