@@ -911,16 +911,34 @@ function saveRecord() {
     
     var score = (data.reading?10:0)+(data.chore?5:0)+(data.special?15:0)+(data.tantrum?-10:0);
     
+    console.log('저장 시작 - 선택된 날짜:', dateStr);
+    console.log('저장 시작 - 계산된 점수:', score);
+    console.log('저장 시작 - 데이터:', data);
+    
     try {
         localStorage.setItem('day_'+dateStr, JSON.stringify(data));
+        console.log('일별 데이터 저장 완료: day_'+dateStr);
         
         var weekStart = getWeekStart(new Date(dateStr+'T00:00:00'));
         var weekStartStr = weekStart.toISOString().split('T')[0];
+        console.log('주 시작일:', weekStartStr);
+        
         var weekData = JSON.parse(localStorage.getItem('week_'+weekStartStr) || '{"total":0,"days":{}}');
+        console.log('기존 주간 데이터:', weekData);
+        
         var oldScore = weekData.days[dateStr] || 0;
+        console.log('이전 점수:', oldScore);
+        
         weekData.total = weekData.total - oldScore + score;
         weekData.days[dateStr] = score;
+        console.log('새로운 주간 데이터:', weekData);
+        
         localStorage.setItem('week_'+weekStartStr, JSON.stringify(weekData));
+        console.log('주간 데이터 저장 완료: week_'+weekStartStr);
+        
+        // 저장 직후 확인
+        var saved = localStorage.getItem('week_'+weekStartStr);
+        console.log('저장 확인:', saved);
         
         console.log('저장 완료:', {
             날짜: dateStr,
@@ -929,8 +947,13 @@ function saveRecord() {
             주간총점: weekData.total
         });
         
-        // 점수 업데이트 (현재 주)
+        // 점수 업데이트 (즉시)
         updateScore();
+        
+        // 점수 업데이트 (100ms 후 재확인)
+        setTimeout(function() {
+            updateScore();
+        }, 100);
         
         if(score >= 15 && dateStr === today) {
             showCelebration();
@@ -938,8 +961,10 @@ function saveRecord() {
                 alert('✅ 오늘 15점 이상 달성! 정말 멋져요! 🎉🎉🎉');
             }, 500);
         } else {
+            var currentWeekStart = getWeekStart(new Date()).toISOString().split('T')[0];
+            var currentWeekData = JSON.parse(localStorage.getItem('week_'+currentWeekStart) || '{"total":0,"days":{}}');
             alert('✅ 기록이 저장되었어요! 잘했어요! 🎉\n\n' + 
-                  '이번 주 총점: ' + (weekStartStr === getWeekStart(new Date()).toISOString().split('T')[0] ? weekData.total : document.getElementById('totalScore').textContent) + '점');
+                  '이번 주 총점: ' + currentWeekData.total + '점');
         }
         
         if(dateStr < today) {
@@ -967,23 +992,42 @@ function getWeekStart(date) {
 
 // 점수 업데이트
 function updateScore() {
-    var weekStart = getWeekStart(new Date());
+    var today = new Date();
+    var weekStart = getWeekStart(today);
     var weekStartStr = weekStart.toISOString().split('T')[0];
+    
     try {
         var weekData = JSON.parse(localStorage.getItem('week_'+weekStartStr) || '{"total":0,"days":{}}');
-        document.getElementById('totalScore').textContent = weekData.total;
-        var statusEl = document.getElementById('gameStatus');
-        if(weekData.total >= 70) {
-            statusEl.className = 'game-status full';
-            statusEl.innerHTML = '🎮🎮 주말 양일 게임 가능! 잘하고 있어요!';
-        } else if(weekData.total >= 40) {
-            statusEl.className = 'game-status half';
-            statusEl.innerHTML = '🎮 주말 하루 게임 가능! 조금만 더 화이팅!';
+        
+        console.log('점수 업데이트 - 주시작:', weekStartStr);
+        console.log('점수 업데이트 - 총점:', weekData.total);
+        console.log('점수 업데이트 - 일별:', weekData.days);
+        
+        var scoreElement = document.getElementById('totalScore');
+        if(scoreElement) {
+            scoreElement.textContent = weekData.total;
+            scoreElement.innerHTML = weekData.total;
+            console.log('점수 표시 업데이트 완료:', weekData.total);
         } else {
-            statusEl.className = 'game-status none';
-            statusEl.innerHTML = '😢 아직 게임 불가능... 힘내요!';
+            console.error('totalScore 요소를 찾을 수 없습니다!');
         }
-    } catch(e) {}
+        
+        var statusEl = document.getElementById('gameStatus');
+        if(statusEl) {
+            if(weekData.total >= 70) {
+                statusEl.className = 'game-status full';
+                statusEl.innerHTML = '🎮🎮 주말 양일 게임 가능! 잘하고 있어요!';
+            } else if(weekData.total >= 40) {
+                statusEl.className = 'game-status half';
+                statusEl.innerHTML = '🎮 주말 하루 게임 가능! 조금만 더 화이팅!';
+            } else {
+                statusEl.className = 'game-status none';
+                statusEl.innerHTML = '😢 아직 게임 불가능... 힘내요!';
+            }
+        }
+    } catch(e) {
+        console.error('점수 업데이트 오류:', e);
+    }
 }
 
 // 축하 효과
