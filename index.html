@@ -511,6 +511,19 @@
 var selectedDate = '';
 var isPasswordVerified = false;
 
+// 한국 시간대 날짜 가져오기 (UTC+9)
+function getKoreanDate(date) {
+    var d = date || new Date();
+    // 한국 시간대로 변환 (UTC+9)
+    var koreanTime = new Date(d.getTime() + (9 * 60 * 60 * 1000));
+    return koreanTime.toISOString().split('T')[0];
+}
+
+// 한국 시간대 현재 날짜
+function getTodayKorean() {
+    return getKoreanDate(new Date());
+}
+
 // 초기화
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
@@ -603,7 +616,7 @@ function doBackup() {
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
-        a.download = '습관기록_백업_'+new Date().toISOString().split('T')[0]+'.json';
+        a.download = '습관기록_백업_'+getTodayKorean()+'.json';
         a.click();
         URL.revokeObjectURL(url);
         alert('✅ 데이터가 JSON 파일로 백업되었어요!');
@@ -673,7 +686,7 @@ function doExcel() {
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
-        a.download = '습관기록_'+new Date().toISOString().split('T')[0]+'.csv';
+        a.download = '습관기록_'+getTodayKorean()+'.csv';
         a.click();
         URL.revokeObjectURL(url);
         alert('✅ 엑셀 파일로 내보내기 완료!');
@@ -687,7 +700,7 @@ function doDebug() {
     var weekStart = getWeekStart(new Date());
     var weekStartStr = weekStart.toISOString().split('T')[0];
     var info = '=== 디버그 정보 ===\n\n';
-    info += '오늘 날짜: '+new Date().toISOString().split('T')[0]+'\n';
+    info += '오늘 날짜 (한국): '+getTodayKorean()+'\n';
     info += '이번 주 시작: '+weekStartStr+'\n\n';
     
     var weekData = localStorage.getItem('week_'+weekStartStr);
@@ -749,7 +762,7 @@ function doFix() {
 // 날짜 함수
 function updateDate() {
     var today = new Date();
-    var todayStr = today.toISOString().split('T')[0];
+    var todayStr = getTodayKorean();
     document.getElementById('dateInput').value = todayStr;
     document.getElementById('dateInput').max = todayStr;
     document.getElementById('dateDisplay').textContent = today.toLocaleDateString('ko-KR', {
@@ -760,7 +773,7 @@ function updateDate() {
 
 function handleDateChange() {
     var newDate = document.getElementById('dateInput').value;
-    var today = new Date().toISOString().split('T')[0];
+    var today = getTodayKorean();
     var warning = document.getElementById('dateWarning');
     
     if(newDate > today) {
@@ -831,7 +844,7 @@ function handlePasswordCancel() {
 
 // 데이터 로드
 function loadToday() {
-    var today = new Date().toISOString().split('T')[0];
+    var today = getTodayKorean();
     loadDateData(today);
 }
 
@@ -888,7 +901,7 @@ function loadDateData(dateStr) {
 // 저장
 function saveRecord() {
     var dateStr = selectedDate;
-    var today = new Date().toISOString().split('T')[0];
+    var today = getTodayKorean();
     
     if(dateStr < today && !isPasswordVerified) {
         alert('❌ 과거 날짜를 저장하려면 먼저 비밀번호를 입력해야 해요!');
@@ -1089,7 +1102,7 @@ function checkFriday() {
         var weekStartStr = weekStart.toISOString().split('T')[0];
         try {
             var weekData = JSON.parse(localStorage.getItem('week_'+weekStartStr) || '{"total":0,"days":{}}');
-            var todayStr = today.toISOString().split('T')[0];
+            var todayStr = getTodayKorean();
             var modalShown = localStorage.getItem('modal_'+todayStr);
             if(!modalShown) {
                 setTimeout(function() {
